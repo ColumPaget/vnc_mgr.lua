@@ -1160,7 +1160,7 @@ local str, i, item, toks, tok
 local host, hostname
 
 str="Settings|New Host"
-for i,item in ipairs(hosts.items)
+for i,item in pairs(hosts.items)
 do
 str=str.. "|" .. item.name .. "  ("..item.host..")"
 if strutil.strlen(item.tunnel) > 0 then str=str.." via("..item.tunnel..")" end
@@ -1300,7 +1300,7 @@ hosts.items={}
 hosts.find=function(self, name)
 local i, item
 
-for i,item in ipairs(self.items)
+for i,item in pairs(self.items)
 do
 if item.name==name then return item end
 end
@@ -1312,7 +1312,7 @@ end
 hosts.delete=function(self, name)
 local i, item
 
-for i,item in ipairs(self.items)
+for i,item in pairs(self.items)
 do
 if item.name==name then self.items[i]=nil end
 end
@@ -1379,14 +1379,18 @@ filesys.mkdirPath(path)
 S=stream.STREAM(path, "w")
 if S ~= nil
 then
-for i,item in ipairs(self.items)
+
+for i,item in pairs(self.items)
 do
+   if item ~= nil
+   then
 	str="'"..item.name.."' " .. " host=" .. item.host
 	if strutil.strlen(item.password) > 0 then str=str.. " pw=" .. item.password end
 	if strutil.strlen(item.certificate) > 0 then str=str.. " cert=" .. item.certificate end
 	if strutil.strlen(item.tunnel) > 0 then str=str.." tunnel="..item.tunnel end
 	str=str.."\n"
 	S:writeln(str)
+   end
 end
 S:close()
 end

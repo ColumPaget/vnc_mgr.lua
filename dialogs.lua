@@ -223,7 +223,7 @@ local str, i, item, toks, tok
 local host, hostname
 
 str="Settings|New Host"
-for i,item in ipairs(hosts.items)
+for i,item in pairs(hosts.items)
 do
 str=str.. "|" .. item.name .. "  ("..item.host..")"
 if strutil.strlen(item.tunnel) > 0 then str=str.." via("..item.tunnel..")" end
