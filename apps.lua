@@ -1,24 +1,33 @@
 
 
 function AppFind(fname)
-local dirs, dir, i
-local apps=""
+local path
+
+path=filesys.find(fname, process.getenv("PATH"))
+if strutil.strlen(path) > 0 then return(path) end
+return("")
+end
+
+function AppsFindMulti(pattern)
+local dirs, dir, files, file, path
+local founds={}
 
 dirs=strutil.TOKENIZER(process.getenv("PATH"), ":")
 dir=dirs:next()
 while dir ~= nil
 do
-	path=dir.."/"..fname
-
-	if filesys.exists(path) == true 
-	then
-			apps=apps..path
-			break
+	path=dir.."/"..pattern
+	files=filesys.GLOB(path)
+	file=files:next()
+	while file ~= nil
+	do
+	table.insert(founds, file)
+	file=files:next()
 	end
 	dir=dirs:next()
 end
 
-return(apps)
+return founds
 end
 
 

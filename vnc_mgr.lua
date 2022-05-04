@@ -80,24 +80,33 @@ end
 
 
 function AppFind(fname)
-local dirs, dir, i
-local apps=""
+local path
+
+path=filesys.find(fname, process.getenv("PATH"))
+if strutil.strlen(path) > 0 then return(path) end
+return("")
+end
+
+function AppsFindMulti(pattern)
+local dirs, dir, files, file, path
+local founds={}
 
 dirs=strutil.TOKENIZER(process.getenv("PATH"), ":")
 dir=dirs:next()
 while dir ~= nil
 do
-	path=dir.."/"..fname
-
-	if filesys.exists(path) == true 
-	then
-			apps=apps..path
-			break
+	path=dir.."/"..pattern
+	files=filesys.GLOB(path)
+	file=files:next()
+	while file ~= nil
+	do
+	table.insert(founds, file)
+	file=files:next()
 	end
 	dir=dirs:next()
 end
 
-return(apps)
+return founds
 end
 
 
@@ -971,15 +980,18 @@ end
 
 
 dialog.ask_certificate=function(self)
-local cert, key, form
+local cert, key, form, choices
 
 while true
 do
 	form=self.driver.form("Enter path to an authentication certificate and key , or leave blank for none", "SSL/TLS/X509 certificate")
 	form:addentry("CertFile")
 	form:addentry("KeyFile")
-	cert,key=form:run()
+	choices=form:run()
+	if choices == nil then return nil end
 
+	cert=choices.CertFile
+	key=choices.KeyFile
 	if strutil.strlen(cert) > 0 and filesys.exists(cert) == false then self.driver.info("Path: " .. cert .. " no such file") 
 	elseif strutil.strlen(key) > 0 and filesys.exists(key) == false then self.driver.info("Path: " .. key .. " no such file") 
 	else break
@@ -1339,6 +1351,7 @@ then
 	if string.sub(tok, 1, 5) == "host=" then item.host=string.sub(tok, 6)
 	elseif string.sub(tok, 1, 3) == "pw=" then item.password=string.sub(tok, 4)
 	elseif string.sub(tok, 1, 5) == "cert=" then item.certificate=string.sub(tok, 6)
+	elseif string.sub(tok, 1, 4) == "key=" then item.keyfile=string.sub(tok, 5)
 	elseif string.sub(tok, 1, 7) == "tunnel=" then item.tunnel=string.sub(tok, 8)
 	end
 	tok=toks:next()
@@ -1479,7 +1492,7 @@ end
 
 connector.connect=function(self)
 local params, str
-local connect_config=""
+local connect_config="rw "
 
 params=URLtoVNCParams(self.target)
 str=params.proto .. ":" .. params.host 
@@ -1487,9 +1500,16 @@ if strutil.strlen(params.port) > 0 then str=str .. ":" .. params.port end
 
 
 -- protocols handled before connection established
-if params.proto == "tls" and strutil.strlen(self.certificate) > 0 then connect_config=connect_config.."SSL:CertFile"..self.certificate end
+if params.proto == "tls" and strutil.strlen(self.certificate) > 0 and strutil.strlen(self.keyfile) > 0
+
+then
+ connect_config=connect_config.."SSL:CertFile="..self.certificate.." "
+ connect_config=connect_config.."SSL:KeyFile="..self.keyfile.." "
+end
+
 if strutil.strlen(self.tunnel) > 0 and string.sub(self.tunnel, 1, 7) == "socks5:" then str=self.tunnel.."|"..str end
 
+print("CON: "..str.." ["..connect_config.."]")
 self.dest=stream.STREAM(str, connect_config)
 
 -- protocols handled after connection established 
@@ -1641,6 +1661,7 @@ connector.tunnel=config.tunnel
 connector.target=config.host
 connector.connection_name=config.name
 connector.certificate=config.certificate
+connector.keyfile=config.keyfile
 
 connector:bind_server()
 
@@ -1655,17 +1676,18 @@ local str
 local viewer={}
 
 
-viewer.autopass=false
 viewer.password_arg=""
 
 str=toks:next()
 while str ~= nil
 do
 if str=="port" then viewer.display_or_port="port" 
-elseif str=="autopass" then viewer.autopass=true
 elseif string.sub(str, 1, 7) == "pw_arg=" then viewer.password_arg=string.sub(str, 8)
+elseif string.sub(str, 1, 11) == "pwfile_arg=" then viewer.pwfile_arg=string.sub(str, 12)
+elseif string.sub(str, 1, 13) == "autopass_arg=" then viewer.autopass_arg=string.sub(str, 14)
 elseif string.sub(str, 1, 13) == "viewonly_arg=" then viewer.viewonly_arg=string.sub(str, 14)
 elseif string.sub(str, 1, 12) == "noshare_arg=" then viewer.noshare_arg=string.sub(str, 13)
+elseif string.sub(str, 1, 15) == "fullscreen_arg=" then viewer.fullscreen_arg=string.sub(str, 16)
 elseif string.sub(str, 1, 15) == "fullscreen_arg=" then viewer.fullscreen_arg=string.sub(str, 16)
 end
 str=toks:next()
@@ -1700,6 +1722,7 @@ then
 	 ViewerAdd(viewers, path, "native", path, toks)
 	end
 	S:close()
+else
 end
 end
 
@@ -1720,15 +1743,19 @@ end
 
 
 function ViewersInit()
-local viewer_configs={"vncviewer.exe:noshare_arg=/noshared:fullscreen_arg=/fullscreen:viewonly_arg=/viewonly", "ultravnc.exe:pw_arg=/password", "ultravncviewer.exe:pw_arg=/password", "tightvnc:autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly", "tightvncviewer:autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly", "ultravnc", "tightvnc-jviewer.jar:port:pw_arg=-password", "turbovncviewer.exe:display", "tigervnc", "tigervncviewer", "vncviewer","tightvnc:autopass","vncviewer.jar"}
+local viewer_configs={"VNC-Viewer*:fullscreen_arg=-FullScreen=1:noshare_arg=-Shared=0", "vncviewer.exe:noshare_arg=/noshared:fullscreen_arg=/fullscreen:viewonly_arg=/viewonly", "ultravnc.exe:pw_arg=/password", "ultravncviewer.exe:pw_arg=/password", "tightvnc:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly", "tightvncviewer:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly", "xtightvncviewer:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly", "ultravnc", "tightvnc-jviewer.jar:port:pw_arg=-password", "turbovncviewer.exe:display:fullscreen_arg=/fullscreen:autopass_arg=/autopass:noshare_arg=/noshared:viewonly_arg=/viewonly", "tigervnc:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen", "tigervncviewer:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen", "xtigervncviewer:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen", "tightvnc:autopass_arg=-autopass","vncviewer.jar", "vncviewer"}
 local viewers={}
 local str, i, config
 
 	for i,config in ipairs(viewer_configs)
 	do
+		--get first item in config, as it is the app name and subsequent ones are possible settings
 		toks=strutil.TOKENIZER(config, ":")
-		str=AppFind(toks:next())
+		apps=AppsFindMulti(toks:next())
+		for i,str in ipairs(apps)
+		do
 		if strutil.strlen(str) > 0 then ViewerConsider(viewers, str, toks) end
+		end
 	end
 
 return(viewers)
@@ -1765,10 +1792,7 @@ local str
 str=VNCReadLine(S)
 if str ~= nil
 then
-print("["..str.."]  ")
-if str=="Password:" then 
-print("SEND: ["..host.password.."]")
-S:writeln(host.password.."\n") end
+if str=="Password:" then S:writeln(host.password.."\n") end
 return true
 end
 
@@ -1776,11 +1800,25 @@ return false
 end
 
 
-function VNCLaunch(url, viewers, host)
-local S, params
-local viewer
+function VNCLaunchPasswordFile(host)
+local str, path, S
 
-print("URL: ".. url)
+path=process.homeDir().."/.vncpasswd.tmp"
+str=AppFind("vncpasswd")
+if strutil.strlen(str) > 0
+then
+S=stream.STREAM("cmd:".. str.. " -f >"..path,  "rw pty")
+process.usleep(10000)
+S:writeln(host.password.."\n")
+S:close()
+end
+return path
+end
+
+
+function VNCLaunch(url, viewers, host)
+local S, params, str
+local viewer
 
 if url ~= nil
 then
@@ -1805,12 +1843,13 @@ if host.view_only == true and strutil.strlen(viewer.viewonly_arg) > 0 then str=s
 if host.single_viewer == true and strutil.strlen(viewer.noshare_arg) > 0 then str=str.. " " .. viewer.noshare_arg end
 if host.fullscreen == true and strutil.strlen(viewer.fullscreen_arg) > 0 then str=str.. " " .. viewer.fullscreen_arg end
 
-if viewer.autopass == true then str=str.." -autopass" end
+if strutil.strlen(viewer.autopass_arg) > 0 then str=str .. " " .. viewer.autopass_arg end
+if strutil.strlen(viewer.pwfile_arg) > 0 then str=str .. " " ..viewer.pwfile_arg .. " " .. VNCLaunchPasswordFile(host) end
 
 print(str)
 viewer.stream=stream.STREAM("cmd: "..str, "rw pty")
 viewer.process=VNCProcess
-if viewer.autopass == true then viewer.stream:writeln(host.password.."\n") end
+if strutil.strlen(viewer.autopass_arg) > 0 then viewer.stream:writeln(host.password.."\n") end
 end
  
 return viewer

@@ -34,15 +34,18 @@ end
 
 
 dialog.ask_certificate=function(self)
-local cert, key, form
+local cert, key, form, choices
 
 while true
 do
 	form=self.driver.form("Enter path to an authentication certificate and key , or leave blank for none", "SSL/TLS/X509 certificate")
 	form:addentry("CertFile")
 	form:addentry("KeyFile")
-	cert,key=form:run()
+	choices=form:run()
+	if choices == nil then return nil end
 
+	cert=choices.CertFile
+	key=choices.KeyFile
 	if strutil.strlen(cert) > 0 and filesys.exists(cert) == false then self.driver.info("Path: " .. cert .. " no such file") 
 	elseif strutil.strlen(key) > 0 and filesys.exists(key) == false then self.driver.info("Path: " .. key .. " no such file") 
 	else break

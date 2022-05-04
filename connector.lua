@@ -76,7 +76,7 @@ end
 
 connector.connect=function(self)
 local params, str
-local connect_config=""
+local connect_config="rw "
 
 params=URLtoVNCParams(self.target)
 str=params.proto .. ":" .. params.host 
@@ -84,9 +84,16 @@ if strutil.strlen(params.port) > 0 then str=str .. ":" .. params.port end
 
 
 -- protocols handled before connection established
-if params.proto == "tls" and strutil.strlen(self.certificate) > 0 then connect_config=connect_config.."SSL:CertFile"..self.certificate end
+if params.proto == "tls" and strutil.strlen(self.certificate) > 0 and strutil.strlen(self.keyfile) > 0
+
+then
+ connect_config=connect_config.."SSL:CertFile="..self.certificate.." "
+ connect_config=connect_config.."SSL:KeyFile="..self.keyfile.." "
+end
+
 if strutil.strlen(self.tunnel) > 0 and string.sub(self.tunnel, 1, 7) == "socks5:" then str=self.tunnel.."|"..str end
 
+print("CON: "..str.." ["..connect_config.."]")
 self.dest=stream.STREAM(str, connect_config)
 
 -- protocols handled after connection established 
@@ -238,6 +245,7 @@ connector.tunnel=config.tunnel
 connector.target=config.host
 connector.connection_name=config.name
 connector.certificate=config.certificate
+connector.keyfile=config.keyfile
 
 connector:bind_server()
 

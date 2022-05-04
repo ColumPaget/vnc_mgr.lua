@@ -47,6 +47,7 @@ then
 	if string.sub(tok, 1, 5) == "host=" then item.host=string.sub(tok, 6)
 	elseif string.sub(tok, 1, 3) == "pw=" then item.password=string.sub(tok, 4)
 	elseif string.sub(tok, 1, 5) == "cert=" then item.certificate=string.sub(tok, 6)
+	elseif string.sub(tok, 1, 4) == "key=" then item.keyfile=string.sub(tok, 5)
 	elseif string.sub(tok, 1, 7) == "tunnel=" then item.tunnel=string.sub(tok, 8)
 	end
 	tok=toks:next()
