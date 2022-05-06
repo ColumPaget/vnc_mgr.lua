@@ -15,7 +15,8 @@ function SSHTunnelClose(self)
 local pid
 
 pid=self.client:getvalue("PeerPID")
-process.kill(pid)
+print("SSH CLOSE: "..pid)
+process.kill(0 - pid)
 self.client:close()
 end
 
@@ -36,7 +37,7 @@ target_params=URLtoVNCParams(self.target)
 
 str=ssh_path .. " -N -L 127.0.0.1:" .. local_port .. ":" .. target_params.host .. ":" .. target_params.port ..  " ".. tunnel_params.host
 print(str)
-self.client=stream.STREAM("cmd:" .. str)
+self.client=stream.STREAM("cmd:" .. str, "rw setsid")
 if self.client ~= nil
 then
 		self.local_url="127.0.0.1::"..local_port
@@ -165,7 +166,7 @@ if self.client ~= nil
 then 
 	if self:connect() == nil
 	then 
-				while	connector:handle_connect_errors() == true do end --do nothing, everyting is handled in 'handle_connect_errors'
+		while	connector:handle_connect_errors() == true do end --do nothing, everyting is handled in 'handle_connect_errors'
 	end
 	if self.dest == nil then self.client:close() end
 end

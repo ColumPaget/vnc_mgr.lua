@@ -13,6 +13,7 @@ elseif string.sub(str, 1, 7) == "pw_arg=" then viewer.password_arg=string.sub(st
 elseif string.sub(str, 1, 11) == "pwfile_arg=" then viewer.pwfile_arg=string.sub(str, 12)
 elseif string.sub(str, 1, 13) == "autopass_arg=" then viewer.autopass_arg=string.sub(str, 14)
 elseif string.sub(str, 1, 13) == "viewonly_arg=" then viewer.viewonly_arg=string.sub(str, 14)
+elseif string.sub(str, 1, 13) == "nocursor_arg=" then viewer.nocursor_arg=string.sub(str, 14)
 elseif string.sub(str, 1, 12) == "noshare_arg=" then viewer.noshare_arg=string.sub(str, 13)
 elseif string.sub(str, 1, 15) == "fullscreen_arg=" then viewer.fullscreen_arg=string.sub(str, 16)
 elseif string.sub(str, 1, 15) == "fullscreen_arg=" then viewer.fullscreen_arg=string.sub(str, 16)
@@ -70,7 +71,23 @@ end
 
 
 function ViewersInit()
-local viewer_configs={"VNC-Viewer*:fullscreen_arg=-FullScreen=1:noshare_arg=-Shared=0", "vncviewer.exe:noshare_arg=/noshared:fullscreen_arg=/fullscreen:viewonly_arg=/viewonly", "ultravnc.exe:pw_arg=/password", "ultravncviewer.exe:pw_arg=/password", "tightvnc:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly", "tightvncviewer:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly", "xtightvncviewer:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly", "ultravnc", "tightvnc-jviewer.jar:port:pw_arg=-password", "turbovncviewer.exe:display:fullscreen_arg=/fullscreen:autopass_arg=/autopass:noshare_arg=/noshared:viewonly_arg=/viewonly", "tigervnc:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen", "tigervncviewer:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen", "xtigervncviewer:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen", "tightvnc:autopass_arg=-autopass","vncviewer.jar", "vncviewer"}
+local viewer_configs={
+"VNC-Viewer*:fullscreen_arg=-FullScreen=1:noshare_arg=-Shared=0:nocursor_arg=-DotWhenNoCursor",
+ "vncviewer.exe:noshare_arg=/noshared:fullscreen_arg=/fullscreen:viewonly_arg=/viewonly",
+ "ultravnc.exe:pw_arg=/password",
+ "ultravncviewer.exe:pw_arg=/password",
+ "tightvnc:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly",
+ "tightvncviewer:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly",
+ "xtightvncviewer:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly",
+ "ultravnc",
+ "tightvnc-jviewer.jar:port:pw_arg=-password",
+ "turbovncviewer.exe:display:fullscreen_arg=/fullscreen:autopass_arg=/autopass:noshare_arg=/noshared:viewonly_arg=/viewonly",
+ "tigervnc:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen:nocursor_arg=-DotWhenNoCursor",
+ "tigervncviewer:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen:nocursor_arg=-DotWhenNoCursor",
+ "xtigervncviewer:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen:nocursor_arg=-DotWhenNoCursor",
+ "vncviewer.jar",
+ "vncviewer"}
+
 local viewers={}
 local str, i, config
 

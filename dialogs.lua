@@ -4,7 +4,8 @@ local dialog={}
 dialog.driver=NewDialog("qarma")
 
 dialog.notice=function(self, msg)
-self.driver.info(msg)
+
+self.driver.info(msg, "vnc_mgr.lua: version "..settings:get("version"))
 end
 
 
@@ -20,6 +21,15 @@ choices=form:run()
 
 if choices == nil then return nil end
 return choices.Username, choices.Password, choices["Save Details"]
+end
+
+
+dialog.ask_password=function(self, window_title)
+local str
+
+str=self.driver.entry("Enter password", window_title)
+
+return str
 end
 
 
@@ -152,12 +162,14 @@ end
 
 
 dialog.config_host=function(self, config)
-local form, choices, host
+local form, choices, host, str
 
 while host == nil
 do
 
-if config ~= nil then form=self.driver:form("Host: "..config.name)
+if config ~= nil then
+ str="Host: "..config.name
+ form=self.driver:form(str)
 else form=self.driver:form("Setup New Host")
 end
 
@@ -187,13 +199,17 @@ form=self.driver:form("Host Options: "..host.name)
 form:addboolean("View Only")
 form:addboolean("Single Viewer")
 form:addboolean("Full Screen")
+form:addboolean("Cursor Dot")
 
 choices=form:run()
+if choices ~= nil then return false end
 
-if choices["View Only"]==true then host.view_only=true end
-if choices["Single Viewer"]==true then host.single_viewer=true end
-if choices["Full Screen"]==true then host.fullscreen=true end
+if choices["View Only"]==true then host.view_only=true else host.view_only=false end
+if choices["Single Viewer"]==true then host.single_viewer=true else host.single_viewer=false end
+if choices["Full Screen"]==true then host.fullscreen=true else host.fullscreen=false end
+if choices["Cursor Dot"]==true then host.cursor_dot=true else host.cursor_dot=false end
 
+return true
 end
 
 
@@ -201,17 +217,26 @@ dialog.host_screen=function(self, host)
 local str
 local act="back"
 
-str=self.driver.menu("Host:"..host.name, "Launch|Launch with Options|Delete Host","vnc_mgr.lua: version "..settings:get("version"))
+str="Host: "..host.name
+if strutil.strlen(host.tunnel) > 0 then str=str.."  via: " .. host.tunnel end
+
+str=self.driver.menu(str, "Launch|Launch with Options|Delete Host|Change Password","vnc_mgr.lua: version "..settings:get("version"))
 str=strutil.trim(str)
 if str=="Delete Host"
 then 
 	hosts:delete(host.name) 
 	hosts:save()
 	act="back"
+elseif str=="Change Password"
+then 
+	host.password=self:ask_password("vnc_mgr: password for "..host.name)
+	hosts:save()
+	act="back"
 elseif str=="Launch with Options"
 then
-	self:launch_options_screen(host)
-	act="launch"
+	if self:launch_options_screen(host) == true then act="launch"
+	else act="back"
+	end
 elseif str=="Launch"
 then
 	act="launch"
@@ -225,7 +250,7 @@ dialog.select_host=function(self)
 local str, i, item, toks, tok
 local host, hostname
 
-str="Settings|New Host"
+str="Settings|New Host|"
 for i,item in pairs(hosts.items)
 do
 str=str.. "|" .. item.name .. "  ("..item.host..")"
@@ -251,7 +276,11 @@ then
 elseif strutil.strlen(tok) > 0 
 then 
 	host=hosts:find(tok) 
-	if host ~= nil then act=self:host_screen(host) end
+	if host ~= nil
+	then 
+	host.cursor_dot=true
+	act=self:host_screen(host) 
+	end
 end
 
 

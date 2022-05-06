@@ -268,7 +268,7 @@ return "yes"
 end
 
 
-function QarmaInfoDialog(text, width, height, title)
+function QarmaInfoDialog(text, title, width, height)
 local str
 
 str="cmd:qarma --info --text='"..text.."'"
@@ -950,7 +950,8 @@ local dialog={}
 dialog.driver=NewDialog("qarma")
 
 dialog.notice=function(self, msg)
-self.driver.info(msg)
+
+self.driver.info(msg, "vnc_mgr.lua: version "..settings:get("version"))
 end
 
 
@@ -966,6 +967,15 @@ choices=form:run()
 
 if choices == nil then return nil end
 return choices.Username, choices.Password, choices["Save Details"]
+end
+
+
+dialog.ask_password=function(self, window_title)
+local str
+
+str=self.driver.entry("Enter password", window_title)
+
+return str
 end
 
 
@@ -1098,12 +1108,14 @@ end
 
 
 dialog.config_host=function(self, config)
-local form, choices, host
+local form, choices, host, str
 
 while host == nil
 do
 
-if config ~= nil then form=self.driver:form("Host: "..config.name)
+if config ~= nil then
+ str="Host: "..config.name
+ form=self.driver:form(str)
 else form=self.driver:form("Setup New Host")
 end
 
@@ -1133,13 +1145,17 @@ form=self.driver:form("Host Options: "..host.name)
 form:addboolean("View Only")
 form:addboolean("Single Viewer")
 form:addboolean("Full Screen")
+form:addboolean("Cursor Dot")
 
 choices=form:run()
+if choices ~= nil then return false end
 
-if choices["View Only"]==true then host.view_only=true end
-if choices["Single Viewer"]==true then host.single_viewer=true end
-if choices["Full Screen"]==true then host.fullscreen=true end
+if choices["View Only"]==true then host.view_only=true else host.view_only=false end
+if choices["Single Viewer"]==true then host.single_viewer=true else host.single_viewer=false end
+if choices["Full Screen"]==true then host.fullscreen=true else host.fullscreen=false end
+if choices["Cursor Dot"]==true then host.cursor_dot=true else host.cursor_dot=false end
 
+return true
 end
 
 
@@ -1147,17 +1163,26 @@ dialog.host_screen=function(self, host)
 local str
 local act="back"
 
-str=self.driver.menu("Host:"..host.name, "Launch|Launch with Options|Delete Host","vnc_mgr.lua: version "..settings:get("version"))
+str="Host: "..host.name
+if strutil.strlen(host.tunnel) > 0 then str=str.."  via: " .. host.tunnel end
+
+str=self.driver.menu(str, "Launch|Launch with Options|Delete Host|Change Password","vnc_mgr.lua: version "..settings:get("version"))
 str=strutil.trim(str)
 if str=="Delete Host"
 then 
 	hosts:delete(host.name) 
 	hosts:save()
 	act="back"
+elseif str=="Change Password"
+then 
+	host.password=self:ask_password("vnc_mgr: password for "..host.name)
+	hosts:save()
+	act="back"
 elseif str=="Launch with Options"
 then
-	self:launch_options_screen(host)
-	act="launch"
+	if self:launch_options_screen(host) == true then act="launch"
+	else act="back"
+	end
 elseif str=="Launch"
 then
 	act="launch"
@@ -1171,7 +1196,7 @@ dialog.select_host=function(self)
 local str, i, item, toks, tok
 local host, hostname
 
-str="Settings|New Host"
+str="Settings|New Host|"
 for i,item in pairs(hosts.items)
 do
 str=str.. "|" .. item.name .. "  ("..item.host..")"
@@ -1197,7 +1222,11 @@ then
 elseif strutil.strlen(tok) > 0 
 then 
 	host=hosts:find(tok) 
-	if host ~= nil then act=self:host_screen(host) end
+	if host ~= nil
+	then 
+	host.cursor_dot=true
+	act=self:host_screen(host) 
+	end
 end
 
 
@@ -1431,7 +1460,8 @@ function SSHTunnelClose(self)
 local pid
 
 pid=self.client:getvalue("PeerPID")
-process.kill(pid)
+print("SSH CLOSE: "..pid)
+process.kill(0 - pid)
 self.client:close()
 end
 
@@ -1452,7 +1482,7 @@ target_params=URLtoVNCParams(self.target)
 
 str=ssh_path .. " -N -L 127.0.0.1:" .. local_port .. ":" .. target_params.host .. ":" .. target_params.port ..  " ".. tunnel_params.host
 print(str)
-self.client=stream.STREAM("cmd:" .. str)
+self.client=stream.STREAM("cmd:" .. str, "rw setsid")
 if self.client ~= nil
 then
 		self.local_url="127.0.0.1::"..local_port
@@ -1581,7 +1611,7 @@ if self.client ~= nil
 then 
 	if self:connect() == nil
 	then 
-				while	connector:handle_connect_errors() == true do end --do nothing, everyting is handled in 'handle_connect_errors'
+		while	connector:handle_connect_errors() == true do end --do nothing, everyting is handled in 'handle_connect_errors'
 	end
 	if self.dest == nil then self.client:close() end
 end
@@ -1686,6 +1716,7 @@ elseif string.sub(str, 1, 7) == "pw_arg=" then viewer.password_arg=string.sub(st
 elseif string.sub(str, 1, 11) == "pwfile_arg=" then viewer.pwfile_arg=string.sub(str, 12)
 elseif string.sub(str, 1, 13) == "autopass_arg=" then viewer.autopass_arg=string.sub(str, 14)
 elseif string.sub(str, 1, 13) == "viewonly_arg=" then viewer.viewonly_arg=string.sub(str, 14)
+elseif string.sub(str, 1, 13) == "nocursor_arg=" then viewer.nocursor_arg=string.sub(str, 14)
 elseif string.sub(str, 1, 12) == "noshare_arg=" then viewer.noshare_arg=string.sub(str, 13)
 elseif string.sub(str, 1, 15) == "fullscreen_arg=" then viewer.fullscreen_arg=string.sub(str, 16)
 elseif string.sub(str, 1, 15) == "fullscreen_arg=" then viewer.fullscreen_arg=string.sub(str, 16)
@@ -1743,7 +1774,23 @@ end
 
 
 function ViewersInit()
-local viewer_configs={"VNC-Viewer*:fullscreen_arg=-FullScreen=1:noshare_arg=-Shared=0", "vncviewer.exe:noshare_arg=/noshared:fullscreen_arg=/fullscreen:viewonly_arg=/viewonly", "ultravnc.exe:pw_arg=/password", "ultravncviewer.exe:pw_arg=/password", "tightvnc:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly", "tightvncviewer:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly", "xtightvncviewer:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly", "ultravnc", "tightvnc-jviewer.jar:port:pw_arg=-password", "turbovncviewer.exe:display:fullscreen_arg=/fullscreen:autopass_arg=/autopass:noshare_arg=/noshared:viewonly_arg=/viewonly", "tigervnc:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen", "tigervncviewer:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen", "xtigervncviewer:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen", "tightvnc:autopass_arg=-autopass","vncviewer.jar", "vncviewer"}
+local viewer_configs={
+"VNC-Viewer*:fullscreen_arg=-FullScreen=1:noshare_arg=-Shared=0:nocursor_arg=-DotWhenNoCursor",
+ "vncviewer.exe:noshare_arg=/noshared:fullscreen_arg=/fullscreen:viewonly_arg=/viewonly",
+ "ultravnc.exe:pw_arg=/password",
+ "ultravncviewer.exe:pw_arg=/password",
+ "tightvnc:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly",
+ "tightvncviewer:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly",
+ "xtightvncviewer:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly",
+ "ultravnc",
+ "tightvnc-jviewer.jar:port:pw_arg=-password",
+ "turbovncviewer.exe:display:fullscreen_arg=/fullscreen:autopass_arg=/autopass:noshare_arg=/noshared:viewonly_arg=/viewonly",
+ "tigervnc:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen:nocursor_arg=-DotWhenNoCursor",
+ "tigervncviewer:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen:nocursor_arg=-DotWhenNoCursor",
+ "xtigervncviewer:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen:nocursor_arg=-DotWhenNoCursor",
+ "vncviewer.jar",
+ "vncviewer"}
+
 local viewers={}
 local str, i, config
 
@@ -1786,15 +1833,24 @@ return line
 end
 
 
-function VNCProcess(S, host)
+function VNCProcess(self, S, host)
 local str
 
 str=VNCReadLine(S)
 if str ~= nil
 then
-if str=="Password:" then S:writeln(host.password.."\n") end
-return true
+	print(str)
+	if str=="Password:"
+	then S:writeln(host.password.."\n") 
+	elseif string.sub(str, 1, 21) == "Authentication failed"
+	then
+	dialogs:notice("Authentication Failure to vnc:" .. host.name) 
+	end
+	return true
 end
+
+-- if we read nil then the vnc viewer shut down, and we will get here
+if strutil.strlen(self.pwfile_path) > 0 then filesys.unlink(self.pwfile_path) end
 
 return false
 end
@@ -1803,11 +1859,13 @@ end
 function VNCLaunchPasswordFile(host)
 local str, path, S
 
-path=process.homeDir().."/.vncpasswd.tmp"
+path=process.homeDir().."/."..host.name.."-vncpasswd.tmp"
+filesys.unlink(path)
 str=AppFind("vncpasswd")
 if strutil.strlen(str) > 0
 then
 S=stream.STREAM("cmd:".. str.. " -f >"..path,  "rw pty")
+print(str)
 process.usleep(10000)
 S:writeln(host.password.."\n")
 S:close()
@@ -1842,9 +1900,15 @@ if strutil.strlen(viewer.password_arg) > 0 then str=str.." "..viewer.password_ar
 if host.view_only == true and strutil.strlen(viewer.viewonly_arg) > 0 then str=str.. " " .. viewer.viewonly_arg end
 if host.single_viewer == true and strutil.strlen(viewer.noshare_arg) > 0 then str=str.. " " .. viewer.noshare_arg end
 if host.fullscreen == true and strutil.strlen(viewer.fullscreen_arg) > 0 then str=str.. " " .. viewer.fullscreen_arg end
+if host.cursor_dot == true and strutil.strlen(viewer.nocursor_arg) > 0 then str=str.. " " .. viewer.nocursor_arg .. "=1" end
+print("NC: "..tostring(host.cursor_dot).. " "..viewer.nocursor_arg)
 
 if strutil.strlen(viewer.autopass_arg) > 0 then str=str .. " " .. viewer.autopass_arg end
-if strutil.strlen(viewer.pwfile_arg) > 0 then str=str .. " " ..viewer.pwfile_arg .. " " .. VNCLaunchPasswordFile(host) end
+if strutil.strlen(viewer.pwfile_arg) > 0
+then
+ viewer.pwfile_path=VNCLaunchPasswordFile(host) 
+ str=str .. " " ..viewer.pwfile_arg .. " " .. viewer.pwfile_path
+end
 
 print(str)
 viewer.stream=stream.STREAM("cmd: "..str, "rw pty")
@@ -1909,7 +1973,7 @@ end
 
 if S==viewer.stream
 then
-	if viewer.process(S, config) == false then break end
+	if viewer:process(S, config) == false then break end
 end
 
 end

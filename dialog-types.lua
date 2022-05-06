@@ -148,7 +148,7 @@ return "yes"
 end
 
 
-function QarmaInfoDialog(text, width, height, title)
+function QarmaInfoDialog(text, title, width, height)
 local str
 
 str="cmd:qarma --info --text='"..text.."'"

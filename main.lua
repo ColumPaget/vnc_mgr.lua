@@ -51,7 +51,7 @@ end
 
 if S==viewer.stream
 then
-	if viewer.process(S, config) == false then break end
+	if viewer:process(S, config) == false then break end
 end
 
 end
