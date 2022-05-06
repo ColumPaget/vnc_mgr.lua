@@ -202,7 +202,7 @@ form:addboolean("Full Screen")
 form:addboolean("Cursor Dot")
 
 choices=form:run()
-if choices ~= nil then return false end
+if choices == nil then return false end
 
 if choices["View Only"]==true then host.view_only=true else host.view_only=false end
 if choices["Single Viewer"]==true then host.single_viewer=true else host.single_viewer=false end
@@ -253,17 +253,17 @@ local host, hostname
 str="Settings|New Host|"
 for i,item in pairs(hosts.items)
 do
-str=str.. "|" .. item.name .. "  ("..item.host..")"
+str=str.. "|" .. item.name .. "    ("..item.host..")"
 if strutil.strlen(item.tunnel) > 0 then str=str.." via("..item.tunnel..")" end
 end
 
-str=self.driver.menu("hosts available", str,"vnc_mgr.lua: version "..settings:get("version"))
+str=self.driver.menu("hosts available", str,"vnc_mgr.lua: version "..settings:get("version"), 400)
 str=strutil.trim(str)
 
 
 if strutil.strlen(str) == 0 then return "quit" end
 
-toks=strutil.TOKENIZER(str, "  (", "Q")
+toks=strutil.TOKENIZER(str, "    (", "Q")
 tok=toks:next()
 if tok=="Settings"
 then 

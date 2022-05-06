@@ -120,10 +120,15 @@ form:add("entry", name, str)
 end
 
 
-function QarmaFormRun(form)
+function QarmaFormRun(form, width, height)
 local str, S
 
 str="qarma --forms --title='" .. form.title .."' "
+if width ~= nil and width > 0 then str=str.." --width "..tostring(width) end
+if height ~= nil and height > 0 then str=str.." --height "..tostring(height) end
+
+
+
 for i,config_item in ipairs(form.config)
 do
 	str=str..config_item.cmd_args.. " "
@@ -199,10 +204,13 @@ return str
 end
 
 
-function QarmaMenuDialog(text, options, title)
+function QarmaMenuDialog(text, options, title, width, height)
 local str, toks, tok, pid
 
 str="cmd:qarma --list --hide-header --text='"..text.."' "
+if width ~= nil and width > 0 then str=str.." --width "..tostring(width) end
+if height ~= nil and height > 0 then str=str.." --height "..tostring(height) end
+
 
 if title ~= nil then str=str.." --title='"..title.."' " end
 
@@ -231,8 +239,8 @@ local S, str
 local dialog={}
 
 str="cmd:qarma --text-info --text='"..text.."'"
-if width > 0 then str=str.." --width "..tostring(width) end
-if height > 0 then str=str.." --height "..tostring(height) end
+if width ~= nil and width > 0 then str=str.." --width "..tostring(width) end
+if height ~= nil and height > 0 then str=str.." --height "..tostring(height) end
 
 dialog.S=stream.STREAM(str)
 dialog.add=QarmaLogDialogAddText

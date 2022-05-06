@@ -240,10 +240,15 @@ form:add("entry", name, str)
 end
 
 
-function QarmaFormRun(form)
+function QarmaFormRun(form, width, height)
 local str, S
 
 str="qarma --forms --title='" .. form.title .."' "
+if width ~= nil and width > 0 then str=str.." --width "..tostring(width) end
+if height ~= nil and height > 0 then str=str.." --height "..tostring(height) end
+
+
+
 for i,config_item in ipairs(form.config)
 do
 	str=str..config_item.cmd_args.. " "
@@ -319,10 +324,13 @@ return str
 end
 
 
-function QarmaMenuDialog(text, options, title)
+function QarmaMenuDialog(text, options, title, width, height)
 local str, toks, tok, pid
 
 str="cmd:qarma --list --hide-header --text='"..text.."' "
+if width ~= nil and width > 0 then str=str.." --width "..tostring(width) end
+if height ~= nil and height > 0 then str=str.." --height "..tostring(height) end
+
 
 if title ~= nil then str=str.." --title='"..title.."' " end
 
@@ -351,8 +359,8 @@ local S, str
 local dialog={}
 
 str="cmd:qarma --text-info --text='"..text.."'"
-if width > 0 then str=str.." --width "..tostring(width) end
-if height > 0 then str=str.." --height "..tostring(height) end
+if width ~= nil and width > 0 then str=str.." --width "..tostring(width) end
+if height ~= nil and height > 0 then str=str.." --height "..tostring(height) end
 
 dialog.S=stream.STREAM(str)
 dialog.add=QarmaLogDialogAddText
@@ -1148,7 +1156,7 @@ form:addboolean("Full Screen")
 form:addboolean("Cursor Dot")
 
 choices=form:run()
-if choices ~= nil then return false end
+if choices == nil then return false end
 
 if choices["View Only"]==true then host.view_only=true else host.view_only=false end
 if choices["Single Viewer"]==true then host.single_viewer=true else host.single_viewer=false end
@@ -1199,17 +1207,17 @@ local host, hostname
 str="Settings|New Host|"
 for i,item in pairs(hosts.items)
 do
-str=str.. "|" .. item.name .. "  ("..item.host..")"
+str=str.. "|" .. item.name .. "    ("..item.host..")"
 if strutil.strlen(item.tunnel) > 0 then str=str.." via("..item.tunnel..")" end
 end
 
-str=self.driver.menu("hosts available", str,"vnc_mgr.lua: version "..settings:get("version"))
+str=self.driver.menu("hosts available", str,"vnc_mgr.lua: version "..settings:get("version"), 400)
 str=strutil.trim(str)
 
 
 if strutil.strlen(str) == 0 then return "quit" end
 
-toks=strutil.TOKENIZER(str, "  (", "Q")
+toks=strutil.TOKENIZER(str, "    (", "Q")
 tok=toks:next()
 if tok=="Settings"
 then 
@@ -1866,8 +1874,9 @@ if strutil.strlen(str) > 0
 then
 S=stream.STREAM("cmd:".. str.. " -f >"..path,  "rw pty")
 print(str)
-process.usleep(10000)
+process.usleep(100000)
 S:writeln(host.password.."\n")
+process.usleep(10000)
 S:close()
 end
 return path
@@ -1901,7 +1910,6 @@ if host.view_only == true and strutil.strlen(viewer.viewonly_arg) > 0 then str=s
 if host.single_viewer == true and strutil.strlen(viewer.noshare_arg) > 0 then str=str.. " " .. viewer.noshare_arg end
 if host.fullscreen == true and strutil.strlen(viewer.fullscreen_arg) > 0 then str=str.. " " .. viewer.fullscreen_arg end
 if host.cursor_dot == true and strutil.strlen(viewer.nocursor_arg) > 0 then str=str.. " " .. viewer.nocursor_arg .. "=1" end
-print("NC: "..tostring(host.cursor_dot).. " "..viewer.nocursor_arg)
 
 if strutil.strlen(viewer.autopass_arg) > 0 then str=str .. " " .. viewer.autopass_arg end
 if strutil.strlen(viewer.pwfile_arg) > 0

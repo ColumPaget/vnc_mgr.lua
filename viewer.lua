@@ -56,8 +56,9 @@ if strutil.strlen(str) > 0
 then
 S=stream.STREAM("cmd:".. str.. " -f >"..path,  "rw pty")
 print(str)
-process.usleep(10000)
+process.usleep(100000)
 S:writeln(host.password.."\n")
+process.usleep(10000)
 S:close()
 end
 return path
@@ -91,7 +92,6 @@ if host.view_only == true and strutil.strlen(viewer.viewonly_arg) > 0 then str=s
 if host.single_viewer == true and strutil.strlen(viewer.noshare_arg) > 0 then str=str.. " " .. viewer.noshare_arg end
 if host.fullscreen == true and strutil.strlen(viewer.fullscreen_arg) > 0 then str=str.. " " .. viewer.fullscreen_arg end
 if host.cursor_dot == true and strutil.strlen(viewer.nocursor_arg) > 0 then str=str.. " " .. viewer.nocursor_arg .. "=1" end
-print("NC: "..tostring(host.cursor_dot).. " "..viewer.nocursor_arg)
 
 if strutil.strlen(viewer.autopass_arg) > 0 then str=str .. " " .. viewer.autopass_arg end
 if strutil.strlen(viewer.pwfile_arg) > 0
