@@ -19,6 +19,12 @@ vnc_mgr.lua is (C) 2020 Colum Paget. It is released under the GPLv3 so you may d
 Email: colums.projects@gmail.com
 
 
+INSTALL
+=======
+
+simply running 'make' will produce a fresh copy of vnc_mgr.lua. This can then be run with 'lua vnc_mgr.lua' or you can use the linux binfmt system to automatically invoke lua to run this script.
+
+
 
 FEATURES
 ========

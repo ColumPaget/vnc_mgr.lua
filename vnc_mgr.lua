@@ -244,7 +244,7 @@ function QarmaFormRun(form, width, height)
 local str, S
 
 str="qarma --forms --title='" .. form.title .."' "
-if strutil.strlen(form.text) then str=str.. "--text='" .. form.text .. "' " end
+if strutil.strlen(form.text) > 0 then str=str.. "--text='" .. form.text .. "' " end
 if width ~= nil and width > 0 then str=str.." --width "..tostring(width) end
 if height ~= nil and height > 0 then str=str.." --height "..tostring(height) end
 
@@ -425,7 +425,7 @@ function ZenityFormRun(form, width, height)
 local str, S
 
 str="zenity --forms --title='" .. form.title .. "' "
-if strutil.strlen(form.text) then str=str.. "--text='" .. form.text .. "' " end
+if strutil.strlen(form.text) > 0 then str=str.. "--text='" .. form.text .. "' " end
 if width ~= nil and width > 0 then str=str.." --width "..tostring(width) end
 if height ~= nil and height > 0 then str=str.." --height "..tostring(height) end
 
@@ -605,7 +605,7 @@ function YadFormRun(form, width, height)
 local str, S, i, config_item
 
 str="yad --form --title='" .. form.title .. "' "
-if strutil.strlen(form.text) then str=str.. "--text='" .. form.text .. "' " end
+if strutil.strlen(form.text) > 0 then str=str.. "--text='" .. form.text .. "' " end
 if width ~= nil and width > 0 then str=str.." --width "..tostring(width) end
 if height ~= nil and height > 0 then str=str.." --height "..tostring(height) end
 
