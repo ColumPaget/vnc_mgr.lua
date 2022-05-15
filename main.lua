@@ -1,8 +1,9 @@
 
 
 
-function AskConnection()
-local target, config, act
+function InitConnections()
+local target, config, act, str
+
 
 act,config=dialogs:top_level() 
 if config==nil then return config end
@@ -24,9 +25,11 @@ hosts=HostsInit()
 viewers=ViewersInit()
 dialogs=DialogsInit()
 
+
 if strutil.strlen(settings:get("viewer")) == 0 then settings:set("viewer", viewers[1].name) end
 
-url,config,connector=AskConnection()
+
+url,config,connector=InitConnections()
 if config ~= nil
 then
 
@@ -45,8 +48,19 @@ S=poll:select(1000)
 
 if connector ~= nil 
 then
-	if S==connector.client then connector:from_client() end
-	if S==connector.dest then connector:to_client() end
+	if S==connector.client
+	then
+		if connector:from_client() == false then break end
+	end
+
+	if S==connector.dest 
+  then 
+		if connector:to_client() == false 
+		then 
+				dialogs:notice("Server Closed Connection")
+				break 
+		end
+	end
 end
 
 if S==viewer.stream

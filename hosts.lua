@@ -96,6 +96,7 @@ do
 	str="'"..item.name.."' " .. " host=" .. item.host
 	if strutil.strlen(item.password) > 0 then str=str.. " pw=" .. item.password end
 	if strutil.strlen(item.certificate) > 0 then str=str.. " cert=" .. item.certificate end
+	if strutil.strlen(item.keyfile) > 0 then str=str.. " key=" .. item.keyfile end
 	if strutil.strlen(item.tunnel) > 0 then str=str.." tunnel="..item.tunnel end
 	str=str.."\n"
 	S:writeln(str)

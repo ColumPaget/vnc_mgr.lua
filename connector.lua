@@ -63,15 +63,43 @@ end
 
 
 
+--create and return a 'connector' object
 function SetupConnector(config) 
 local connector={}
-local params
+local params, global_proxy
 
--- we only use a connector for ssh/socks5 tunnels or unix and tls connections
+
+global_proxy=settings:get("proxy")
+if strutil.strlen(global_proxy) > 0 then net.setProxy(global_proxy) end
+
+-- we only use a connector for ssh/socks5 tunnels or unix and tls connections, or if we have a global proxy
+if strutil.strlen(global_proxy) == 0 
+then
 if strutil.strlen(config.tunnel) == 0 and string.sub(config.host, 1, 4) ~= "tls:" and string.sub(config.host, 1, 5) ~= "unix:" then return nil end
+end
 
-
+-- All Below are functions included in the connector that SetupConnector returns
 connector.noop=function(self)
+end
+
+
+
+-- stuff that needs to be handled after connection established 
+connector.connect_postprocess=function(self, params)
+
+if params.proto == "tls"
+then
+	if self.dest:getvalue("SSL:CertificateVerify") ~= "OK"
+	then
+		if dialogs:certificate_warning(self.dest) ~= true
+		then
+			self.dest:close()
+			return false
+		end
+	end
+end
+
+return true
 end
 
 
@@ -97,24 +125,11 @@ if strutil.strlen(self.tunnel) > 0 and string.sub(self.tunnel, 1, 7) == "socks5:
 print("CON: "..str.." ["..connect_config.."]")
 self.dest=stream.STREAM(str, connect_config)
 
--- protocols handled after connection established 
-if params.proto == "tls"
+if self.dest ~= nil and self.client ~= nil
 then
-if self.dest:getvalue("SSL:CertificateVerify") ~= "OK"
-then
-	if dialogs:certificate_warning(self.dest) ~= true
-	then
-	self.dest:close()
-	return nil
-	end
-end
-
-end
-
-if self.dest
-then
-	if self.client ~= nil then poll:add(self.client) end
-	if self.dest ~= nil then poll:add(self.dest) end
+	if connector:connect_postprocess(params) == false then return nil end
+	poll:add(self.client)
+	poll:add(self.dest)
 end
 
 return self.dest
@@ -154,10 +169,15 @@ local try_again=false
 					else
 					dialogs:notice(str)  
 					end
+	else
+					dialogs:notice("ERROR: Connection failed")
 	end
 
 	return try_again
 end
+
+
+
 
 connector.accept=function(self)
 

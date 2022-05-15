@@ -101,8 +101,20 @@ form:addchoice("Viewer", str)
 end
 
 
+
 dialog.settings_proxy=function(self, form)
-form:addentry("Global Proxy", settings:get("proxy"))
+local str
+
+str=settings:get("proxy")
+if strutil.strlen(str) > 0
+then 
+				str=str.."|change" 
+else
+				str="set new"
+end
+
+str=str.."|none"
+form:addchoice("Global Proxy", str)
 end
 
 
@@ -119,7 +131,21 @@ choices=form:run()
 if choices ~= nil
 then
 if strutil.strlen(choices["Viewer"]) > 0 then settings:set("viewer", choices["Viewer"]) end
-if strutil.strlen(choices["Global Proxy"]) > 0 then settings:set("proxy", choices["Global Proxy"]) end
+
+str=choices["Global Proxy"]
+if strutil.strlen(str) > 0 
+then 
+  if str == "none"
+	then
+			settings:set("proxy", "")
+  elseif str == "change" or str == "set new"
+	then
+			str=self.driver.entry("Enter Global Proxy", "Settings: vnc_mgr.lua")
+			if strutil.strlen(str) > 0 then settings:set("proxy", str) end
+	else
+			settings:set("proxy", str)
+	end
+end
 settings:save()
 end
 
@@ -144,6 +170,7 @@ elseif host.tunnel_type == "TLS"
 then 
 	host.host="tls:"..choices.Host
 	str,key=dialog:ask_certificate()
+	--nil, rather than blank, means the user hit 'cancel'
 	if str==nil then return nil end
 	host.certificate=str
 	host.keyfile=key
@@ -152,6 +179,7 @@ then
 	host.host="tls:"..choices.Host
 	host.tunnel=dialog:ask_tunnel("socks5","SOCKS5 Proxy Host/URL") 
 	str=dialog:ask_certificate() 
+	--nil, rather than blank, means the user hit 'cancel'
 	if str==nil then return nil end
 	host.tunnel=str
 end
@@ -170,7 +198,7 @@ do
 if config ~= nil then
  str="Host: "..config.name
  form=self.driver:form(str)
-else form=self.driver:form("Setup New Host")
+else form=self.driver:form("Setup New Host", "Host can be: <hostname::portnumber> or <hostname:vnc-display>")
 end
 
 form:addentry("Name")
@@ -214,13 +242,17 @@ end
 
 
 dialog.host_screen=function(self, host)
-local str
+local title, str
 local act="back"
 
-str="Host: "..host.name
-if strutil.strlen(host.tunnel) > 0 then str=str.."  via: " .. host.tunnel end
+title="Host: "..host.name
+if strutil.strlen(host.tunnel) > 0 then title=title.."  via: " .. host.tunnel end
 
-str=self.driver.menu(str, "Launch|Launch with Options|Delete Host|Change Password","vnc_mgr.lua: version "..settings:get("version"))
+str="Launch|Launch with Options|Change Password"
+if string.sub(host.host, 1, 4) == "tls:" then str=str.."|Change Certificate" end
+str=str.."|Delete Host"
+
+str=self.driver.menu(title, str, "vnc_mgr.lua: version "..settings:get("version"))
 str=strutil.trim(str)
 if str=="Delete Host"
 then 
@@ -231,6 +263,11 @@ elseif str=="Change Password"
 then 
 	host.password=self:ask_password("vnc_mgr: password for "..host.name)
 	hosts:save()
+	act="back"
+elseif str=="Change Certificate"
+then 
+	host.certificate,host.keyfile=dialog:ask_certificate()
+	if host.certificate ~= nil then hosts:save() end
 	act="back"
 elseif str=="Launch with Options"
 then

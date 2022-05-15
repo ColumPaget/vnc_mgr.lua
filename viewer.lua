@@ -80,7 +80,6 @@ end
 
 
 params=URLtoVNCParams(url)
-print("PARAMS: ["..params.display.."]  "..url)
 
 str=viewer.cmd.." " .. params.host .. ":" 
 if viewer.display_or_port == "port" then str=str..params.port

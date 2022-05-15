@@ -244,6 +244,7 @@ function QarmaFormRun(form, width, height)
 local str, S
 
 str="qarma --forms --title='" .. form.title .."' "
+if strutil.strlen(form.text) then str=str.. "--text='" .. form.text .. "' " end
 if width ~= nil and width > 0 then str=str.." --width "..tostring(width) end
 if height ~= nil and height > 0 then str=str.." --height "..tostring(height) end
 
@@ -371,10 +372,11 @@ end
 
 
 
-function QarmaFormObjectCreate(dialogs, title)
+function QarmaFormObjectCreate(dialogs, title, text)
 local form={}
 
 form.title=title
+form.text=text
 form.config={}
 form.add=FormItemAdd
 form.addboolean=QarmaFormAddBoolean
@@ -419,10 +421,16 @@ form:add("entry", name, "--add-entry='"..name.."'")
 end
 
 
-function ZenityFormRun(form)
+function ZenityFormRun(form, width, height)
 local str, S
 
 str="zenity --forms --title='" .. form.title .. "' "
+if strutil.strlen(form.text) then str=str.. "--text='" .. form.text .. "' " end
+if width ~= nil and width > 0 then str=str.." --width "..tostring(width) end
+if height ~= nil and height > 0 then str=str.." --height "..tostring(height) end
+
+
+
 for i,config_item in ipairs(form.config)
 do
 	str=str..config_item.cmd_args.. " "
@@ -540,10 +548,11 @@ end
 
 
 
-function ZenityFormObjectCreate(dialogs, title)
+function ZenityFormObjectCreate(dialogs, title, text)
 local form={}
 
 form.title=title
+form.text=text
 form.config={}
 form.add=FormItemAdd
 form.addboolean=ZenityFormAddBoolean
@@ -592,10 +601,15 @@ form:add("entry", name, "--add-entry='"..name.."'")
 end
 
 
-function YadFormRun(form)
+function YadFormRun(form, width, height)
 local str, S, i, config_item
 
 str="yad --form --title='" .. form.title .. "' "
+if strutil.strlen(form.text) then str=str.. "--text='" .. form.text .. "' " end
+if width ~= nil and width > 0 then str=str.." --width "..tostring(width) end
+if height ~= nil and height > 0 then str=str.." --height "..tostring(height) end
+
+
 for i,config_item in ipairs(form.config)
 do
 	str=str..config_item.cmd_args.. " "
@@ -717,10 +731,11 @@ end
 
 
 
-function YadFormObjectCreate(dialogs, title)
+function YadFormObjectCreate(dialogs, title, text)
 local form={}
 
 form.title=title
+form.text=text
 form.config={}
 form.add=FormItemAdd
 form.addboolean=YadFormAddBoolean
@@ -1055,8 +1070,20 @@ form:addchoice("Viewer", str)
 end
 
 
+
 dialog.settings_proxy=function(self, form)
-form:addentry("Global Proxy", settings:get("proxy"))
+local str
+
+str=settings:get("proxy")
+if strutil.strlen(str) > 0
+then 
+				str=str.."|change" 
+else
+				str="set new"
+end
+
+str=str.."|none"
+form:addchoice("Global Proxy", str)
 end
 
 
@@ -1073,7 +1100,21 @@ choices=form:run()
 if choices ~= nil
 then
 if strutil.strlen(choices["Viewer"]) > 0 then settings:set("viewer", choices["Viewer"]) end
-if strutil.strlen(choices["Global Proxy"]) > 0 then settings:set("proxy", choices["Global Proxy"]) end
+
+str=choices["Global Proxy"]
+if strutil.strlen(str) > 0 
+then 
+  if str == "none"
+	then
+			settings:set("proxy", "")
+  elseif str == "change" or str == "set new"
+	then
+			str=self.driver.entry("Enter Global Proxy", "Settings: vnc_mgr.lua")
+			if strutil.strlen(str) > 0 then settings:set("proxy", str) end
+	else
+			settings:set("proxy", str)
+	end
+end
 settings:save()
 end
 
@@ -1098,6 +1139,7 @@ elseif host.tunnel_type == "TLS"
 then 
 	host.host="tls:"..choices.Host
 	str,key=dialog:ask_certificate()
+	--nil, rather than blank, means the user hit 'cancel'
 	if str==nil then return nil end
 	host.certificate=str
 	host.keyfile=key
@@ -1106,6 +1148,7 @@ then
 	host.host="tls:"..choices.Host
 	host.tunnel=dialog:ask_tunnel("socks5","SOCKS5 Proxy Host/URL") 
 	str=dialog:ask_certificate() 
+	--nil, rather than blank, means the user hit 'cancel'
 	if str==nil then return nil end
 	host.tunnel=str
 end
@@ -1124,7 +1167,7 @@ do
 if config ~= nil then
  str="Host: "..config.name
  form=self.driver:form(str)
-else form=self.driver:form("Setup New Host")
+else form=self.driver:form("Setup New Host", "Host can be: <hostname::portnumber> or <hostname:vnc-display>")
 end
 
 form:addentry("Name")
@@ -1168,13 +1211,17 @@ end
 
 
 dialog.host_screen=function(self, host)
-local str
+local title, str
 local act="back"
 
-str="Host: "..host.name
-if strutil.strlen(host.tunnel) > 0 then str=str.."  via: " .. host.tunnel end
+title="Host: "..host.name
+if strutil.strlen(host.tunnel) > 0 then title=title.."  via: " .. host.tunnel end
 
-str=self.driver.menu(str, "Launch|Launch with Options|Delete Host|Change Password","vnc_mgr.lua: version "..settings:get("version"))
+str="Launch|Launch with Options|Change Password"
+if string.sub(host.host, 1, 4) == "tls:" then str=str.."|Change Certificate" end
+str=str.."|Delete Host"
+
+str=self.driver.menu(title, str, "vnc_mgr.lua: version "..settings:get("version"))
 str=strutil.trim(str)
 if str=="Delete Host"
 then 
@@ -1185,6 +1232,11 @@ elseif str=="Change Password"
 then 
 	host.password=self:ask_password("vnc_mgr: password for "..host.name)
 	hosts:save()
+	act="back"
+elseif str=="Change Certificate"
+then 
+	host.certificate,host.keyfile=dialog:ask_certificate()
+	if host.certificate ~= nil then hosts:save() end
 	act="back"
 elseif str=="Launch with Options"
 then
@@ -1437,6 +1489,7 @@ do
 	str="'"..item.name.."' " .. " host=" .. item.host
 	if strutil.strlen(item.password) > 0 then str=str.. " pw=" .. item.password end
 	if strutil.strlen(item.certificate) > 0 then str=str.. " cert=" .. item.certificate end
+	if strutil.strlen(item.keyfile) > 0 then str=str.. " key=" .. item.keyfile end
 	if strutil.strlen(item.tunnel) > 0 then str=str.." tunnel="..item.tunnel end
 	str=str.."\n"
 	S:writeln(str)
@@ -1516,15 +1569,43 @@ end
 
 
 
+--create and return a 'connector' object
 function SetupConnector(config) 
 local connector={}
-local params
+local params, global_proxy
 
--- we only use a connector for ssh/socks5 tunnels or unix and tls connections
+
+global_proxy=settings:get("proxy")
+if strutil.strlen(global_proxy) > 0 then net.setProxy(global_proxy) end
+
+-- we only use a connector for ssh/socks5 tunnels or unix and tls connections, or if we have a global proxy
+if strutil.strlen(global_proxy) == 0 
+then
 if strutil.strlen(config.tunnel) == 0 and string.sub(config.host, 1, 4) ~= "tls:" and string.sub(config.host, 1, 5) ~= "unix:" then return nil end
+end
 
-
+-- All Below are functions included in the connector that SetupConnector returns
 connector.noop=function(self)
+end
+
+
+
+-- stuff that needs to be handled after connection established 
+connector.connect_postprocess=function(self, params)
+
+if params.proto == "tls"
+then
+	if self.dest:getvalue("SSL:CertificateVerify") ~= "OK"
+	then
+		if dialogs:certificate_warning(self.dest) ~= true
+		then
+			self.dest:close()
+			return false
+		end
+	end
+end
+
+return true
 end
 
 
@@ -1550,24 +1631,11 @@ if strutil.strlen(self.tunnel) > 0 and string.sub(self.tunnel, 1, 7) == "socks5:
 print("CON: "..str.." ["..connect_config.."]")
 self.dest=stream.STREAM(str, connect_config)
 
--- protocols handled after connection established 
-if params.proto == "tls"
+if self.dest ~= nil and self.client ~= nil
 then
-if self.dest:getvalue("SSL:CertificateVerify") ~= "OK"
-then
-	if dialogs:certificate_warning(self.dest) ~= true
-	then
-	self.dest:close()
-	return nil
-	end
-end
-
-end
-
-if self.dest
-then
-	if self.client ~= nil then poll:add(self.client) end
-	if self.dest ~= nil then poll:add(self.dest) end
+	if connector:connect_postprocess(params) == false then return nil end
+	poll:add(self.client)
+	poll:add(self.dest)
 end
 
 return self.dest
@@ -1607,10 +1675,15 @@ local try_again=false
 					else
 					dialogs:notice(str)  
 					end
+	else
+					dialogs:notice("ERROR: Connection failed")
 	end
 
 	return try_again
 end
+
+
+
 
 connector.accept=function(self)
 
@@ -1898,7 +1971,6 @@ end
 
 
 params=URLtoVNCParams(url)
-print("PARAMS: ["..params.display.."]  "..url)
 
 str=viewer.cmd.." " .. params.host .. ":" 
 if viewer.display_or_port == "port" then str=str..params.port
@@ -1931,8 +2003,9 @@ end
 
 
 
-function AskConnection()
-local target, config, act
+function InitConnections()
+local target, config, act, str
+
 
 act,config=dialogs:top_level() 
 if config==nil then return config end
@@ -1954,9 +2027,11 @@ hosts=HostsInit()
 viewers=ViewersInit()
 dialogs=DialogsInit()
 
+
 if strutil.strlen(settings:get("viewer")) == 0 then settings:set("viewer", viewers[1].name) end
 
-url,config,connector=AskConnection()
+
+url,config,connector=InitConnections()
 if config ~= nil
 then
 
@@ -1975,8 +2050,19 @@ S=poll:select(1000)
 
 if connector ~= nil 
 then
-	if S==connector.client then connector:from_client() end
-	if S==connector.dest then connector:to_client() end
+	if S==connector.client
+	then
+		if connector:from_client() == false then break end
+	end
+
+	if S==connector.dest 
+  then 
+		if connector:to_client() == false 
+		then 
+				dialogs:notice("Server Closed Connection")
+				break 
+		end
+	end
 end
 
 if S==viewer.stream
