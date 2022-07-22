@@ -72,19 +72,19 @@ end
 
 function ViewersInit()
 local viewer_configs={
-"VNC-Viewer*:fullscreen_arg=-FullScreen=1:noshare_arg=-Shared=0:nocursor_arg=-DotWhenNoCursor",
+"VNC-Viewer*:fullscreen_arg=-FullScreen=1:noshare_arg=-Shared=0:nocursor_arg=-DotWhenNoCursor:port",
  "vncviewer.exe:noshare_arg=/noshared:fullscreen_arg=/fullscreen:viewonly_arg=/viewonly",
  "ultravnc.exe:pw_arg=/password",
  "ultravncviewer.exe:pw_arg=/password",
- "tightvnc:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly",
- "tightvncviewer:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly",
- "xtightvncviewer:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly",
+ "tightvnc:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly:port",
+ "tightvncviewer:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly:port",
+ "xtightvncviewer:autopass_arg=-autopass:noshare_arg=-noshared:fullscreen_arg=-fullscreen:viewonly_arg=-viewonly:port",
  "ultravnc",
- "tightvnc-jviewer.jar:port:pw_arg=-password",
+ "tightvnc-jviewer.jar:pw_arg=-password:port",
  "turbovncviewer.exe:display:fullscreen_arg=/fullscreen:autopass_arg=/autopass:noshare_arg=/noshared:viewonly_arg=/viewonly",
- "tigervnc:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen:nocursor_arg=-DotWhenNoCursor",
- "tigervncviewer:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen:nocursor_arg=-DotWhenNoCursor",
- "xtigervncviewer:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen:nocursor_arg=-DotWhenNoCursor",
+ "tigervnc:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen:nocursor_arg=-DotWhenNoCursor:port",
+ "tigervncviewer:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen:nocursor_arg=-DotWhenNoCursor:port",
+ "xtigervncviewer:pwfile_arg=-passwd:noshare_arg=-Shared=no:viewonly_arg=-ViewOnly:fullscreen_arg=-FullScreen:nocursor_arg=-DotWhenNoCursor:port",
  "vncviewer.jar",
  "vncviewer"}
 

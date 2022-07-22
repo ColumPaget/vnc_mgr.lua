@@ -108,12 +108,11 @@ local str
 str=settings:get("proxy")
 if strutil.strlen(str) > 0
 then 
-				str=str.."|change" 
+				str=str.."|change|none" 
 else
-				str="set new"
+				str="none|set new"
 end
 
-str=str.."|none"
 form:addchoice("Global Proxy", str)
 end
 
@@ -158,7 +157,7 @@ local host={}
 
 params=URLtoVNCParams(choices.Host)
 host.name=choices.Name
-host.host=choices.Host
+host.host=params.host
 if strutil.strlen(params.port) > 0  and params.port ~= "5900" then host.host=host.host .. "::" ..params.port end
 host.password=choices.Password
 host.tunnel_type=choices.Protocol
